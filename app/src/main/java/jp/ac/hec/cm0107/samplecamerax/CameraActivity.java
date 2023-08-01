@@ -90,7 +90,7 @@ public class CameraActivity extends AppCompatActivity implements View.OnTouchLis
                     @Override
                     public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
                         Bitmap photo = BitmapFactory.decodeFile(file.getPath());
-                        Bitmap result = conbineBitmap(photo,screenShot());
+                        Bitmap result = combineBitmap(photo,screenShot());
 
                         putGallery(file);
                         OutputStream out  = null;
@@ -216,7 +216,7 @@ public class CameraActivity extends AppCompatActivity implements View.OnTouchLis
             e.printStackTrace();
         }
     }
-    private Bitmap conbineBitmap(Bitmap b1,Bitmap b2){
+    private Bitmap combineBitmap(Bitmap b1,Bitmap b2){
         Bitmap result = Bitmap.createBitmap(b1.getWidth(),b1.getHeight(),Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(result);
         canvas.drawBitmap(b1,0,0,null);
