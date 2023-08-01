@@ -21,8 +21,6 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Rect;
 import android.net.Uri;
-import android.nfc.Tag;
-import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Log;
@@ -32,7 +30,6 @@ import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ImageView;
-import android.widget.Toast;
 
 import com.google.common.util.concurrent.ListenableFuture;
 
@@ -41,12 +38,9 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
 import java.util.Date;
-import java.util.Locale;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 
@@ -75,7 +69,7 @@ public class CameraActivity extends AppCompatActivity implements View.OnTouchLis
 
         setContentView(R.layout.activity_camera);
 
-        target = findViewById(R.id.imageView);
+        target = findViewById(R.id.laySerif);
         target.setOnTouchListener(this);
 
         previewView = findViewById(R.id.previewView);
@@ -89,8 +83,8 @@ public class CameraActivity extends AppCompatActivity implements View.OnTouchLis
                     getDecorView().findViewById(android.R.id.content);
             if (rootView != null && rootView.getChildCount() != 0) {
                 ViewGroup frameView = (ViewGroup) rootView.getChildAt(0);
-                //View serifView = findViewById(R.id.laySerif);
-                //frameView.removeView(serifView);
+                View serifView = findViewById(R.id.laySerif);
+                frameView.removeView(serifView);
             }
         } else if ( cameraMode == 3 ) { // キャラクタを消す
             ViewGroup rootView = (ViewGroup) getWindow().
@@ -104,41 +98,38 @@ public class CameraActivity extends AppCompatActivity implements View.OnTouchLis
 
         startCamera();
 
-        btnCapture.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                File file = new File(getFilesDir(),"photo1.jpg");
-                ImageCapture.OutputFileOptions outputFileOptions = new ImageCapture.OutputFileOptions.Builder(file).build();
-                imageCapture.takePicture(outputFileOptions, Executors.newSingleThreadExecutor(), new ImageCapture.OnImageSavedCallback() {
-                    @Override
-                    public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
-                        Bitmap photo = BitmapFactory.decodeFile(file.getPath());
-                        Bitmap result = combineBitmap(photo,screenShot());
+        btnCapture.setOnClickListener(v -> {
+            File file = new File(getFilesDir(),getNowDate()+".jpg");
+            ImageCapture.OutputFileOptions outputFileOptions = new ImageCapture.OutputFileOptions.Builder(file).build();
+            imageCapture.takePicture(outputFileOptions, Executors.newSingleThreadExecutor(), new ImageCapture.OnImageSavedCallback() {
+                @Override
+                public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
+                    Bitmap photo = BitmapFactory.decodeFile(file.getPath());
+                    Bitmap result = combineBitmap(photo,screenShot());
 
+                    putGallery(file);
+                    OutputStream out  = null;
+                    try{
+                        out = new FileOutputStream(file);
+                        result.compress(Bitmap.CompressFormat.JPEG,100,out);
+                        out.close();
                         putGallery(file);
-                        OutputStream out  = null;
-                        try{
-                            out = new FileOutputStream(file);
-                            result.compress(Bitmap.CompressFormat.JPEG,100,out);
-                            out.close();
-                            putGallery(file);
-                        } catch (FileNotFoundException e) {
-                            e.printStackTrace();
-                        } catch (IOException e){
-                            e.printStackTrace();
-                        }
-                        Log.i(TAG,"onImageSaved");
-                        Log.i(TAG,outputFileResults.getSavedUri().toString());
+                    } catch (FileNotFoundException e) {
+                        e.printStackTrace();
+                    } catch (IOException e){
+                        e.printStackTrace();
                     }
+                    Log.i(TAG,"onImageSaved");
+                    Log.i(TAG,outputFileResults.getSavedUri().toString());
+                }
 
-                    @Override
-                    public void onError(@NonNull ImageCaptureException exception) {
-                        Log.i(TAG,"onError");
-                        Log.i(TAG,exception.getMessage());
-                    }
-                });
+                @Override
+                public void onError(@NonNull ImageCaptureException exception) {
+                    Log.i(TAG,"onError");
+                    Log.i(TAG,exception.getMessage());
+                }
+            });
 //                saveScreenShot();
-            }
         });
 
 
@@ -150,37 +141,34 @@ public class CameraActivity extends AppCompatActivity implements View.OnTouchLis
         ListenableFuture<ProcessCameraProvider> cameraProviderFuture =
                 ProcessCameraProvider.getInstance(this);
 
-        cameraProviderFuture.addListener(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    // Camera provider is now guaranteed to be available
-                    ProcessCameraProvider cameraProvider = cameraProviderFuture.get();
+        cameraProviderFuture.addListener(() -> {
+            try {
+                // Camera provider is now guaranteed to be available
+                ProcessCameraProvider cameraProvider = cameraProviderFuture.get();
 
-                    // Set up the view finder use case to display camera preview
-                    Preview preview = new Preview.Builder().build();
-                    // Choose the camera by requiring a lens facing
-                    CameraSelector cameraSelector = new CameraSelector.Builder()
-                            .requireLensFacing(CameraSelector.LENS_FACING_BACK)
-                            .build();
+                // Set up the view finder use case to display camera preview
+                Preview preview = new Preview.Builder().build();
+                // Choose the camera by requiring a lens facing
+                CameraSelector cameraSelector = new CameraSelector.Builder()
+                        .requireLensFacing(CameraSelector.LENS_FACING_BACK)
+                        .build();
 
-                    imageCapture = new ImageCapture.Builder().build();
+                imageCapture = new ImageCapture.Builder().build();
 
-                    // Attach use cases to the camera with the same lifecycle owner
-                    Camera camera = cameraProvider.bindToLifecycle(
-                            (LifecycleOwner) CameraActivity.this,
-                            cameraSelector,
-                            preview, imageCapture);
+                // Attach use cases to the camera with the same lifecycle owner
+                Camera camera = cameraProvider.bindToLifecycle(
+                        (LifecycleOwner) CameraActivity.this,
+                        cameraSelector,
+                        preview, imageCapture);
 
-                    // Connect the preview use case to the previewView
-                    preview.setSurfaceProvider(
-                            previewView.getSurfaceProvider());
+                // Connect the preview use case to the previewView
+                preview.setSurfaceProvider(
+                        previewView.getSurfaceProvider());
 
-                }catch (InterruptedException | ExecutionException e) {
-                    // Currently no exceptions thrown. cameraProviderFuture.get()
-                    // shouldn't block since the listener is being called, so no need to
-                    // handle InterruptedException.
-                }
+            }catch (InterruptedException | ExecutionException e) {
+                // Currently no exceptions thrown. cameraProviderFuture.get()
+                // shouldn't block since the listener is being called, so no need to
+                // handle InterruptedException.
             }
         }, ContextCompat.getMainExecutor(this));
     }
@@ -273,5 +261,11 @@ public class CameraActivity extends AppCompatActivity implements View.OnTouchLis
         screenX = x;
         screenY = y;
         return true;
+    }
+    public static String getNowDate() {
+        @SuppressLint("SimpleDateFormat") final DateFormat df =
+                new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+        final Date date  = new Date(System.currentTimeMillis());
+        return df.format(date);
     }
 }

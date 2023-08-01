@@ -26,10 +26,18 @@
 
         <Button
             android:id="@+id/btnStart"
+            android:layout_weight="1"
+            android:textAlignment="center"
+            android:text="Start"
+            android:textColor="#FFFFFF"
+            android:textSize="32sp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Button" />
+            android:background="@drawable/buttonshape"
+            android:shadowColor="#474747"
+            android:shadowDx="0"
+            android:shadowDy="0"
+            android:shadowRadius="5" />
 
         <Button
             android:id="@+id/btnEnd"
