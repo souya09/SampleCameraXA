@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">SampleCameraX</string>
+    <string-array name="mode_list">
+        <item>NormalMode</item>
+        <item>CharacterMode</item>
+        <item>FrameMode</item>
+    </string-array>
+</resources>
