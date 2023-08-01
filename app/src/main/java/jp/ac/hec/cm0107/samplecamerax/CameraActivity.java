@@ -15,6 +15,7 @@ import androidx.lifecycle.LifecycleOwner;
 import android.annotation.SuppressLint;
 import android.content.ContentResolver;
 import android.content.ContentValues;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
@@ -62,6 +63,7 @@ public class CameraActivity extends AppCompatActivity implements View.OnTouchLis
     private int screenX;
     private int screenY;
     private ImageView target;
+    private int cameraMode;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,6 +71,7 @@ public class CameraActivity extends AppCompatActivity implements View.OnTouchLis
 
         getSupportActionBar().hide();
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+
 
         setContentView(R.layout.activity_camera);
 
@@ -79,6 +82,9 @@ public class CameraActivity extends AppCompatActivity implements View.OnTouchLis
 
         btnCapture = findViewById(R.id.btnCapture);
         TAG = "MainActivity";
+        Intent intent = getIntent();
+        cameraMode = intent.getIntExtra(MainActivity.EXTRA_DATA,0);
+
         startCamera();
 
         btnCapture.setOnClickListener(new View.OnClickListener() {
@@ -120,6 +126,8 @@ public class CameraActivity extends AppCompatActivity implements View.OnTouchLis
 
 
     }
+
+
 
     private void startCamera(){
         ListenableFuture<ProcessCameraProvider> cameraProviderFuture =
