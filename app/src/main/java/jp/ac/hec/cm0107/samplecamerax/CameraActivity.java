@@ -84,6 +84,23 @@ public class CameraActivity extends AppCompatActivity implements View.OnTouchLis
         TAG = "MainActivity";
         Intent intent = getIntent();
         cameraMode = intent.getIntExtra(MainActivity.EXTRA_DATA,0);
+        if ( cameraMode == 2 ) { // セリフを消す
+            ViewGroup rootView = (ViewGroup) getWindow().
+                    getDecorView().findViewById(android.R.id.content);
+            if (rootView != null && rootView.getChildCount() != 0) {
+                ViewGroup frameView = (ViewGroup) rootView.getChildAt(0);
+                //View serifView = findViewById(R.id.laySerif);
+                //frameView.removeView(serifView);
+            }
+        } else if ( cameraMode == 3 ) { // キャラクタを消す
+            ViewGroup rootView = (ViewGroup) getWindow().
+                    getDecorView().findViewById(android.R.id.content);
+            if (rootView != null && rootView.getChildCount() != 0) {
+                ViewGroup frameView = (ViewGroup) rootView.getChildAt(0);
+                //View serifView = findViewById(R.id.imgChara);
+                //frameView.removeView(serifView);
+            }
+        }
 
         startCamera();
 
