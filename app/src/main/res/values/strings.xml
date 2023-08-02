@@ -5,4 +5,9 @@
         <item>CharacterMode</item>
         <item>FrameMode</item>
     </string-array>
+<string-array name="item">
+    <item>フキダシ</item>
+    <item>クマノミ</item>
+    <item>金魚</item>
+</string-array>
 </resources>

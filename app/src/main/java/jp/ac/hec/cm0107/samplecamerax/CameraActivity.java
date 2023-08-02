@@ -22,6 +22,7 @@ import android.graphics.Canvas;
 import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -30,6 +31,7 @@ import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.TextView;
 
 import com.google.common.util.concurrent.ListenableFuture;
 
@@ -57,7 +59,11 @@ public class CameraActivity extends AppCompatActivity implements View.OnTouchLis
     private int screenX;
     private int screenY;
     private ImageView target;
+    private TextView textView;
     private int cameraMode;
+    private String str;
+    private Handler handler;
+    private int item;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,8 +74,10 @@ public class CameraActivity extends AppCompatActivity implements View.OnTouchLis
 
 
         setContentView(R.layout.activity_camera);
+        handler = new Handler();
 
         target = findViewById(R.id.laySerif);
+        textView = findViewById(R.id.txt);
         target.setOnTouchListener(this);
 
         previewView = findViewById(R.id.previewView);
@@ -78,35 +86,70 @@ public class CameraActivity extends AppCompatActivity implements View.OnTouchLis
         TAG = "MainActivity";
         Intent intent = getIntent();
         cameraMode = intent.getIntExtra(MainActivity.EXTRA_DATA,0);
-        if ( cameraMode == 2 ) { // セリフを消す
+        Log.i("cameraMode", "onCreate: "+ cameraMode);
+        if ( cameraMode == 3 ) { // セリフを消す
             ViewGroup rootView = (ViewGroup) getWindow().
                     getDecorView().findViewById(android.R.id.content);
             if (rootView != null && rootView.getChildCount() != 0) {
                 ViewGroup frameView = (ViewGroup) rootView.getChildAt(0);
                 View serifView = findViewById(R.id.laySerif);
+                View txtView = findViewById(R.id.txt);
+                frameView.removeView(txtView);
                 frameView.removeView(serifView);
             }
-        } else if ( cameraMode == 3 ) { // キャラクタを消す
+        } else if ( cameraMode == 2 ) { // キャラクタを消す
             ViewGroup rootView = (ViewGroup) getWindow().
                     getDecorView().findViewById(android.R.id.content);
             if (rootView != null && rootView.getChildCount() != 0) {
                 ViewGroup frameView = (ViewGroup) rootView.getChildAt(0);
-                //View serifView = findViewById(R.id.imgChara);
-                //frameView.removeView(serifView);
+                View imgView = findViewById(R.id.frameImg);
+                frameView.removeView(imgView);
+                item = intent.getIntExtra("ITEM_DATA",1);
+                switch (item){
+                    case 1:
+                        target.setImageResource(R.drawable.f00134);
+                        str = intent.getStringExtra("EDIT_DATA");
+                        textView.setText(str);
+                        break;
+                    case 2:
+                        target.setImageResource(R.drawable.item1);
+                        textView.setVisibility(View.INVISIBLE);
+                        break;
+                    case 3:
+                        target.setImageResource(R.drawable.item2);
+                        textView.setVisibility(View.INVISIBLE);
+                        break;
+                }
+
+            }
+        }else if (cameraMode == 1){
+            ViewGroup rootView = (ViewGroup) getWindow().
+                    getDecorView().findViewById(android.R.id.content);
+            if (rootView != null && rootView.getChildCount() != 0) {
+                ViewGroup frameView = (ViewGroup) rootView.getChildAt(0);
+                View imgView = findViewById(R.id.frameImg);
+                frameView.removeView(imgView);
+                View serifView = findViewById(R.id.laySerif);
+                View txtView = findViewById(R.id.txt);
+                frameView.removeView(txtView);
+                frameView.removeView(serifView);
             }
         }
 
         startCamera();
 
         btnCapture.setOnClickListener(v -> {
-            File file = new File(getFilesDir(),getNowDate()+".jpg");
+            Log.i(TAG, "btnCapture.setOnClickListener start...");
+            String time = getNowDate();
+            File file = new File(getFilesDir(),time+".jpg");
+            btnCapture.setVisibility(View.INVISIBLE);
+//            File file = new File(getFilesDir(),"aaa.jpg");
             ImageCapture.OutputFileOptions outputFileOptions = new ImageCapture.OutputFileOptions.Builder(file).build();
             imageCapture.takePicture(outputFileOptions, Executors.newSingleThreadExecutor(), new ImageCapture.OnImageSavedCallback() {
                 @Override
                 public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
                     Bitmap photo = BitmapFactory.decodeFile(file.getPath());
                     Bitmap result = combineBitmap(photo,screenShot());
-
                     putGallery(file);
                     OutputStream out  = null;
                     try{
@@ -114,6 +157,13 @@ public class CameraActivity extends AppCompatActivity implements View.OnTouchLis
                         result.compress(Bitmap.CompressFormat.JPEG,100,out);
                         out.close();
                         putGallery(file);
+                        handler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                btnCapture.setVisibility(View.VISIBLE);
+                            }
+                        });
+
                     } catch (FileNotFoundException e) {
                         e.printStackTrace();
                     } catch (IOException e){
@@ -121,7 +171,9 @@ public class CameraActivity extends AppCompatActivity implements View.OnTouchLis
                     }
                     Log.i(TAG,"onImageSaved");
                     Log.i(TAG,outputFileResults.getSavedUri().toString());
+
                 }
+
 
                 @Override
                 public void onError(@NonNull ImageCaptureException exception) {
@@ -176,8 +228,9 @@ public class CameraActivity extends AppCompatActivity implements View.OnTouchLis
     private void putGallery(File file){
         ContentResolver resolver = getApplicationContext().getContentResolver();
         ContentValues contentValues = new ContentValues();
-        contentValues.put(MediaStore.MediaColumns.DISPLAY_NAME,"photo.jpg");
-        contentValues.put(MediaStore.MediaColumns.MIME_TYPE,"image/png");
+        String time = getNowDate();
+        contentValues.put(MediaStore.MediaColumns.DISPLAY_NAME,time +".jpg");
+        contentValues.put(MediaStore.MediaColumns.MIME_TYPE,"image/jpg");
         Uri imageUri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,contentValues);
         try{
             OutputStream fos = resolver.openOutputStream(imageUri);
@@ -223,6 +276,7 @@ public class CameraActivity extends AppCompatActivity implements View.OnTouchLis
             bitmap.compress(Bitmap.CompressFormat.JPEG,100,out);
             out.close();
             putGallery(file);
+
         }catch (FileNotFoundException e) {
             e.printStackTrace();
         }catch (IOException e) {
@@ -249,13 +303,19 @@ public class CameraActivity extends AppCompatActivity implements View.OnTouchLis
         int x = (int)event.getRawX();
         int y = (int)event.getRawY();
 
+
         switch (event.getAction()){
             case MotionEvent.ACTION_MOVE:
                 int dx = target.getLeft() + (x - screenX);
                 int dy = target.getTop() + (y - screenY);
+                int tx =  textView.getLeft() + (x - screenX);
+                int ty =  textView.getTop() + (y - screenY);
                 target.layout(dx,dy,
                         dx + target.getWidth(),
                         dy + target.getHeight());
+                textView.layout(tx,ty,
+                        tx + textView.getWidth(),
+                        ty + textView.getHeight());
                 break;
         }
         screenX = x;
@@ -264,8 +324,15 @@ public class CameraActivity extends AppCompatActivity implements View.OnTouchLis
     }
     public static String getNowDate() {
         @SuppressLint("SimpleDateFormat") final DateFormat df =
-                new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+                new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         final Date date  = new Date(System.currentTimeMillis());
         return df.format(date);
+    }
+    public void btnSet(Boolean bool){
+        if (bool) {
+            btnCapture.setVisibility(View.VISIBLE);
+        }else{
+            btnCapture.setVisibility(View.INVISIBLE);
+        }
     }
 }
